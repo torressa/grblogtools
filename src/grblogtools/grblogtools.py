@@ -10,155 +10,162 @@ from numpy import nan
 from grblogtools.helpers import fill_default_parameters
 from grblogtools.helpers import add_categorical_descriptions
 
+
 # Log Status Codes
-class logstatus:
+class LogStatus:
     FINISHED, INCOMPLETE, FAILED = range(3)
 
     def str(value):
-        if value == logstatus.FINISHED:
+        if value == LogStatus.FINISHED:
             return "FINISHED"
-        elif value == logstatus.INCOMPLETE:
+        elif value == LogStatus.INCOMPLETE:
             return "INCOMPLETE"
-        elif value == logstatus.FAILED:
+        elif value == LogStatus.FAILED:
             return "FAILED"
         else:
             return "UNKNOWN"
 
 
-class logpattern:
+class LogPattern:
 
     # Log start indicator (all lines before last occcurence are discarded)
     headers = [
         re.compile(
-            "Gurobi (?P<Version>\d{1,2}\.[^\s]+) \((?P<Platform>[^\)]+)\) logging started (?P<Time>.*)$"
+            r"Gurobi (?P<Version>\d{1,2}\.[^\s]+) \((?P<Platform>[^\)]+)\) logging started (?P<Time>.*)$"
         ),
-        re.compile("Logging started (?P<Time>.*)$"),
+        re.compile(r"Logging started (?P<Time>.*)$"),
         re.compile(
-            "Gurobi Compute Server Worker version (?P<Version>\d{1,2}\.[^\s]+) build (.*) \((?P<Platform>[^\)]+)\)$"
+            r"Gurobi Compute Server Worker version (?P<Version>\d{1,2}\.[^\s]+) build (.*) \((?P<Platform>[^\)]+)\)$"
         ),
-        re.compile("Compute Server job ID: (?P<JobID>.*)$")
+        re.compile(r"Compute Server job ID: (?P<JobID>.*)$"),
     ]
 
     # Parameter settings
-    parameters = re.compile("Set parameter (?P<Name>[^\s]+) to value (?P<Value>.*)$")
+    parameters = re.compile(r"Set parameter (?P<Name>[^\s]+) to value (?P<Value>.*)$")
 
     # Termination messsages
     termination_message = [
         re.compile(
-            "(Solved|Stopped) in (?P<IterCount>[^\s]+) iterations and (?P<Runtime>[^\s]+) seconds"
+            r"(Solved|Stopped) in (?P<IterCount>[^\s]+) iterations and (?P<Runtime>[^\s]+) seconds"
         ),
         re.compile(
-            "Best objective (?P<ObjVal>[^,]+), best bound (?P<ObjBound>[^,]+), gap (?P<MIPGap>.*)$"
+            r"Best objective (?P<ObjVal>[^,]+), best bound (?P<ObjBound>[^,]+), gap (?P<MIPGap>.*)$"
         ),
         re.compile(
-            "Barrier solved model in (?P<BarIterCount>[^\s]+) iterations and (?P<Runtime>[^\s]+) seconds"
+            r"Barrier solved model in (?P<BarIterCount>[^\s]+) iterations and (?P<Runtime>[^\s]+) seconds"
         ),
-        re.compile("ERROR (?P<ErrorCode>[^:]+): (?P<ErrorMessage>.*)$"),
-        re.compile("\[(?P<ErrorMessage>process terminated with exit code [^\\]]+)\]$"),
+        re.compile(r"ERROR (?P<ErrorCode>[^:]+): (?P<ErrorMessage>.*)$"),
+        re.compile(r"\[(?P<ErrorMessage>process terminated with exit code [^\\]]+)\]$"),
     ]
 
     # Termination status
     termination_status = [
-        re.compile("(?P<TIME_LIMIT>Time limit reached)"),
-        re.compile("(?P<OPTIMAL>Optimal solution found)(?: \(tolerance .*\))"),
-        re.compile("(?P<OPTIMAL>Optimal objective\s+(?P<ObjVal>.*))$"),
-        re.compile("(?P<ITERATION_LIMIT>Iteration limit reached)"),
-        re.compile("(?P<INF_OR_UNBD>Infeasible or unbounded model)"),
-        re.compile("(?P<INF_OR_UNBD>Model is infeasible or unbounded)"),
-        re.compile("(?P<UNBOUNDED>Unbounded model)"),
-        re.compile("(?P<UNBOUNDED>Model is unbounded)"),
-        re.compile("(?P<INFEASIBLE>Infeasible model)"),
-        re.compile("(?P<INFEASIBLE>Model is infeasible)"),
-        re.compile("(?P<SOLUTION_LIMIT>Solution limit reached)"),
-        re.compile("(?P<NODE_LIMIT>Node limit reached)"),
-        re.compile("(?P<NUMERIC>Numeric error)"),
-        re.compile("(?P<NUMERIC>Numerical trouble encountered)"),
+        re.compile(r"(?P<TIME_LIMIT>Time limit reached)"),
+        re.compile(r"(?P<OPTIMAL>Optimal solution found)(?: \(tolerance .*\))"),
+        re.compile(r"(?P<OPTIMAL>Optimal objective\s+(?P<ObjVal>.*))$"),
+        re.compile(r"(?P<ITERATION_LIMIT>Iteration limit reached)"),
+        re.compile(r"(?P<INF_OR_UNBD>Infeasible or unbounded model)"),
+        re.compile(r"(?P<INF_OR_UNBD>Model is infeasible or unbounded)"),
+        re.compile(r"(?P<UNBOUNDED>Unbounded model)"),
+        re.compile(r"(?P<UNBOUNDED>Model is unbounded)"),
+        re.compile(r"(?P<INFEASIBLE>Infeasible model)"),
+        re.compile(r"(?P<INFEASIBLE>Model is infeasible)"),
+        re.compile(r"(?P<SOLUTION_LIMIT>Solution limit reached)"),
+        re.compile(r"(?P<NODE_LIMIT>Node limit reached)"),
+        re.compile(r"(?P<NUMERIC>Numeric error)"),
+        re.compile(r"(?P<NUMERIC>Numerical trouble encountered)"),
         re.compile(
-            "(?P<SUBOPTIMAL>Sub-optimal termination)(?: - objective (P<ObjVal>.*))$"
+            r"(?P<SUBOPTIMAL>Sub-optimal termination)(?: - objective (P<ObjVal>.*))$"
         ),
-        re.compile("(?P<CUTOFF>Model objective exceeds cutoff)"),
-        re.compile("(?P<CUTOFF>Objective cutoff exceeded)"),
-        re.compile("(?P<USER_OBJ_LIMIT>Optimization achieved user objective limit)"),
+        re.compile(r"(?P<CUTOFF>Model objective exceeds cutoff)"),
+        re.compile(r"(?P<CUTOFF>Objective cutoff exceeded)"),
+        re.compile(r"(?P<USER_OBJ_LIMIT>Optimization achieved user objective limit)"),
         re.compile(
-            "(?P<INTERRUPTED>(Interrupt request received|Solve interrupted))(?: \\(error code (?P<ErrorCode>[^\\)]+)\\))?"
+            r"(?P<INTERRUPTED>(Interrupt request received|Solve interrupted))(?: \\(error code (?P<ErrorCode>[^\\)]+)\\))?"
         ),
     ]
 
     # Coefficient statistics
     coefficients = [
         re.compile(
-            "\s*QMatrix range\s*\[(?P<MinQCCoeff>[^,]+),\s*(?P<MaxQCCoeff>[^\]]+)\]"
+            r"\s*QMatrix range\s*\[(?P<MinQCCoeff>[^,]+),\s*(?P<MaxQCCoeff>[^\]]+)\]"
         ),
         re.compile(
-            "\s*QLMatrix range\s*\[(?P<MinQCLCoeff>[^,]+),\s*(?P<MaxQCLCoeff>[^\]]+)\]"
-        ),
-        re.compile("\s*Matrix range\s*\[(?P<MinCoeff>[^,]+),\s*(?P<MaxCoeff>[^\]]+)\]"),
-        re.compile(
-            "\s*QObjective range\s*\[(?P<MinQObjCoeff>[^,]+),\s*(?P<MaxQObjCoeff>[^\]]+)\]"
+            r"\s*QLMatrix range\s*\[(?P<MinQCLCoeff>[^,]+),\s*(?P<MaxQCLCoeff>[^\]]+)\]"
         ),
         re.compile(
-            "\s*Objective range\s*\[(?P<MinObjCoeff>[^,]+),\s*(?P<MaxObjCoeff>[^\]]+)\]"
+            r"\s*Matrix range\s*\[(?P<MinCoeff>[^,]+),\s*(?P<MaxCoeff>[^\]]+)\]"
         ),
-        re.compile("\s*Bounds range\s*\[(?P<MinBound>[^,]+),\s*(?P<MaxBound>[^\]]+)\]"),
-        re.compile("\s*RHS range\s*\[(?P<MinRHS>[^,]+),\s*(?P<MaxRHS>[^\]]+)\]"),
-        re.compile("\s*QRHS range\s*\[(?P<MinQCRHS>[^,]+),\s*(?P<MaxQCRHS>[^\]]+)\]"),
+        re.compile(
+            r"\s*QObjective range\s*\[(?P<MinQObjCoeff>[^,]+),\s*(?P<MaxQObjCoeff>[^\]]+)\]"
+        ),
+        re.compile(
+            r"\s*Objective range\s*\[(?P<MinObjCoeff>[^,]+),\s*(?P<MaxObjCoeff>[^\]]+)\]"
+        ),
+        re.compile(
+            r"\s*Bounds range\s*\[(?P<MinBound>[^,]+),\s*(?P<MaxBound>[^\]]+)\]"
+        ),
+        re.compile(r"\s*RHS range\s*\[(?P<MinRHS>[^,]+),\s*(?P<MaxRHS>[^\]]+)\]"),
+        re.compile(r"\s*QRHS range\s*\[(?P<MinQCRHS>[^,]+),\s*(?P<MaxQCRHS>[^\]]+)\]"),
     ]
 
     # Various pattern (last occurence is always taken)
     various = [
         re.compile(
-            "Variable types: (?P<PresolvedNumConVars>\d+) continuous, (?P<PresolvedNumIntVars>\d+) integer \((?P<PresolvedNumBinVars>\d+) binary\)$"
+            r"Variable types: (?P<PresolvedNumConVars>\d+) continuous, (?P<PresolvedNumIntVars>\d+) integer \((?P<PresolvedNumBinVars>\d+) binary\)$"
         ),
         re.compile(
-            "Variable types: (?P<PresolvedNumBinVars>\d+) bin/(?P<PresolvedNumIntVars>\d+) gen[^/]*/(?P<PresolvedNumConVars>\d+) continuous"
+            r"Variable types: (?P<PresolvedNumBinVars>\d+) bin/(?P<PresolvedNumIntVars>\d+) gen[^/]*/(?P<PresolvedNumConVars>\d+) continuous"
         ),
         re.compile(
-            "Semi-Variable types: (?P<PresolvedNumSemiContVars>\d+) continuous, (?P<PresolvedNumSemiIntVars>\d+) integer$"
+            r"Semi-Variable types: (?P<PresolvedNumSemiContVars>\d+) continuous, (?P<PresolvedNumSemiIntVars>\d+) integer$"
         ),
-        re.compile("Optimal objective\s+(?P<ObjVal>.*)$"),
+        re.compile(r"Optimal objective\s+(?P<ObjVal>.*)$"),
         re.compile(
-            "Optimize a model with (?P<NumConstrs>\d+) (R|r)ows, (?P<NumVars>\d+) (C|c)olumns and (?P<NumNZs>\d+) (N|n)on(Z|z)ero(e?)s"
+            r"Optimize a model with (?P<NumConstrs>\d+) (R|r)ows, (?P<NumVars>\d+) (C|c)olumns and (?P<NumNZs>\d+) (N|n)on(Z|z)ero(e?)s"
         ),
-        re.compile("Presolve time: (?P<PresolveTime>[\d\.]+)s"),
-        re.compile("Thread count was (?P<Threads>\d+) \(of (?P<Cores>\d+) available processors\)"),
-        re.compile("Distributed MIP job count: (?P<DistributedMIPJobs>\d+)"),
-        re.compile("Concurrent MIP job count: (?P<ConcurrentJobs>\d+)"),
-        re.compile("Reading time = (?P<ReadTime>[\d\.]+) seconds"),
-        re.compile("Ordering time: (?P<OrderingTime>[\d\.]+)s"),
-        re.compile("Model has (?P<NumQNZs>\d+) quadratic objective terms?"),
-        re.compile("Model has (?P<NumQConstrs>\d+) quadratic constraints?"),
-        re.compile("Model has (?P<NumSOS>\d+) SOS constraints?"),
+        re.compile(r"Presolve time: (?P<PresolveTime>[\d\.]+)s"),
         re.compile(
-            "Model has (?P<NumPWLObjVars>\d+) piecewise-linear objective terms?"
+            r"Thread count was (?P<Threads>\d+) \(of (?P<Cores>\d+) available processors\)"
         ),
-        re.compile("Model has (?P<NumGenConstrs>\d+) general constraints?"),
-        re.compile("Loaded user MIP start with objective (?P<MIPStart>.*)$"),
-        re.compile("Pool objective bound (?P<PoolObjBound>.*)$"),
-        re.compile("Solution count (?P<SolCount>\d+)"),
+        re.compile(r"Distributed MIP job count: (?P<DistributedMIPJobs>\d+)"),
+        re.compile(r"Concurrent MIP job count: (?P<ConcurrentJobs>\d+)"),
+        re.compile(r"Reading time = (?P<ReadTime>[\d\.]+) seconds"),
+        re.compile(r"Ordering time: (?P<OrderingTime>[\d\.]+)s"),
+        re.compile(r"Model has (?P<NumQNZs>\d+) quadratic objective terms?"),
+        re.compile(r"Model has (?P<NumQConstrs>\d+) quadratic constraints?"),
+        re.compile(r"Model has (?P<NumSOS>\d+) SOS constraints?"),
         re.compile(
-            "Root relaxation: objective (?P<RelaxObj>[^,]+), (?P<RelaxIterCount>\d+) iterations, (?P<RelaxTime>[^\s]+) seconds"
+            r"Model has (?P<NumPWLObjVars>\d+) piecewise-linear objective terms?"
         ),
+        re.compile(r"Model has (?P<NumGenConstrs>\d+) general constraints?"),
+        re.compile(r"Loaded user MIP start with objective (?P<MIPStart>.*)$"),
+        re.compile(r"Pool objective bound (?P<PoolObjBound>.*)$"),
+        re.compile(r"Solution count (?P<SolCount>\d+)"),
         re.compile(
-            "Explored (?P<NodeCount>\d+) nodes \((?P<IterCount>\d+) simplex iterations\) in (?P<Runtime>[^\s]+) seconds"
-        ),
-        re.compile(
-            "Barrier performed (?P<BarIterCount>\d+) iterations in [^\s]+ seconds"
+            r"Root relaxation: objective (?P<RelaxObj>[^,]+), (?P<RelaxIterCount>\d+) iterations, (?P<RelaxTime>[^\s]+) seconds"
         ),
         re.compile(
-            "Barrier solved model in (?P<BarIterCount>\d+) iterations and [^\s]+ seconds"
+            r"Explored (?P<NodeCount>\d+) nodes \((?P<IterCount>\d+) simplex iterations\) in (?P<Runtime>[^\s]+) seconds"
         ),
         re.compile(
-            "Push phase complete: Pinf (?P<PushPhasePInf>[^,]+), Dinf (?P<PushPhaseDInf>[^,]+)\s+(?P<PushPhaseEndTime>\d+)s"
+            r"Barrier performed (?P<BarIterCount>\d+) iterations in [^\s]+ seconds"
         ),
-        re.compile("Read (MPS|LP) format model from file (?P<ModelFilePath>.*)$"),
         re.compile(
-            "(?!Presolved)(?P<Model>.*): \d+ (R|r)ows, \d+ (C|c)olumns, \d+ (N|n)on(Z|z)ero(e?)s"
+            r"Barrier solved model in (?P<BarIterCount>\d+) iterations and [^\s]+ seconds"
         ),
-        re.compile("Presolved model has (?P<PresolvedNumSOS>\d+) SOS constraint(s)\n"),
         re.compile(
-            "Presolved model has (?P<PresolvedNumQNZs>\d+) quadratic objective terms"
+            r"Push phase complete: Pinf (?P<PushPhasePInf>[^,]+), Dinf (?P<PushPhaseDInf>[^,]+)\s+(?P<PushPhaseEndTime>\d+)s"
         ),
-        re.compile("Gurobi Optimizer version (?P<Version>\d{1,2}\.[^\s]+)"),
+        re.compile(r"Read (MPS|LP) format model from file (?P<ModelFilePath>.*)$"),
+        re.compile(
+            r"(?!Presolved)(?P<Model>.*): \d+ (R|r)ows, \d+ (C|c)olumns, \d+ (N|n)on(Z|z)ero(e?)s"
+        ),
+        re.compile(r"Presolved model has (?P<PresolvedNumSOS>\d+) SOS constraint(s)\n"),
+        re.compile(
+            r"Presolved model has (?P<PresolvedNumQNZs>\d+) quadratic objective terms"
+        ),
+        re.compile(r"Gurobi Optimizer version (?P<Version>\d{1,2}\.[^\s]+)"),
     ]
 
     # Patterns that come BEFORE any final termination message if found
@@ -174,7 +181,7 @@ class logpattern:
 
     # Presolve information (only last occurence is taken)
     presolve = re.compile(
-        "Presolved: (?P<PresolvedNumConstrs>\d+) (R|r)ows, (?P<PresolvedNumVars>\d+) (C|c)olumns, (?P<PresolvedNumNZs>\d+) (N|n)on(Z|z)ero(e?)s"
+        r"Presolved: (?P<PresolvedNumConstrs>\d+) (R|r)ows, (?P<PresolvedNumVars>\d+) (C|c)olumns, (?P<PresolvedNumNZs>\d+) (N|n)on(Z|z)ero(e?)s"
     )
     presolve_complete = re.compile("Presolve: All rows and columns removed")
 
@@ -187,7 +194,9 @@ def _regex_group_to_field_name(groupname):
 
 
 def _regex_matches(lines, regex_list, reverse=True, matchLimit=float("inf")):
-    """(Reverse) iterate over a list of log lines, call match() for a list of regex and return first successful match as (lineNumber, groupDict) up to matchLimit lines."""
+    """(Reverse) iterate over a list of log lines, call match() for a list of
+    regex and return first successful match as (lineNumber, groupDict) up to
+    matchLimit lines."""
 
     # Check parameters
     if not isinstance(lines, list):
@@ -221,7 +230,8 @@ def _regex_matches(lines, regex_list, reverse=True, matchLimit=float("inf")):
 
 
 def _regex_first_match(lines, regex_list, reverse=True):
-    """(Reverse) iterate over a list of log lines, call match() for a list of regex and return first successful match as (lineNumber, groupDict)."""
+    """(Reverse) iterate over a list of log lines, call match() for a list of
+    regex and return first successful match as (lineNumber, groupDict)."""
 
     # Check parameters
     if not isinstance(lines, list):
@@ -255,44 +265,45 @@ def get_log_status(loglines):
         raise TypeError("Wrong log format")
 
     # Check first message
-    first_line, result = _regex_first_match(loglines, logpattern.headers, reverse=True)
+    first_line, result = _regex_first_match(loglines, LogPattern.headers, reverse=True)
     if not result:
-        return logstatus.INCOMPLETE
+        return LogStatus.INCOMPLETE
     loglines = loglines[first_line:]
 
     # Filter log lines that are not final termination lines
     loglines_before_termination = loglines
     pre_termination_line, result = _regex_first_match(
-        loglines, logpattern.pre_termination, reverse=True
+        loglines, LogPattern.pre_termination, reverse=True
     )
     if result is not None:
         loglines_before_termination = loglines_before_termination[pre_termination_line:]
 
     _, result = _regex_first_match(
-        loglines_before_termination, logpattern.termination_message, reverse=True
+        loglines_before_termination, LogPattern.termination_message, reverse=True
     )
     if not result:
-        return logstatus.INCOMPLETE
+        return LogStatus.INCOMPLETE
     else:
         if result.get("ErrorMessage", None) is not None:
-            return logstatus.FAILED
+            return LogStatus.FAILED
 
     # Check termination status
     _, result = _regex_first_match(
-        loglines, logpattern.termination_status, reverse=True
+        loglines, LogPattern.termination_status, reverse=True
     )
     if not result:
-        return logstatus.INCOMPLETE
+        return LogStatus.INCOMPLETE
 
     # Simple pattern
-    for regex in logpattern.various:
+    for regex in LogPattern.various:
         _, result = _regex_first_match(loglines, regex, reverse=True)
 
-    return logstatus.FINISHED
+    return LogStatus.FINISHED
 
 
 def _get_last_nonempty_line(loglines, start_line):
-    """Check loglines starting at index start_line and return the number of the last line that is not empty"""
+    """Check loglines starting at index start_line and return the number of the
+    last line that is not empty"""
 
     last_line = len(loglines) - 1
     for i in range(start_line, len(loglines)):
@@ -304,7 +315,8 @@ def _get_last_nonempty_line(loglines, start_line):
 
 
 def _get_last_tree_line(loglines, start_line):
-    """Check loglines starting at index start_line and return the number of the 'Explored ... nodes' line"""
+    """Check loglines starting at index start_line and return the number of the
+    'Explored ... nodes' line"""
 
     last_line = len(loglines)
     explored = re.compile(r"Explored \d+ nodes")
@@ -319,9 +331,9 @@ def _get_typed_values(values):
 
     typed_values = {}
 
-    int_regex = re.compile("[-+]?\d+$")
-    float_regex = re.compile("[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?$")
-    percentage_regex = re.compile("[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?%$")
+    int_regex = re.compile(r"[-+]?\d+$")
+    float_regex = re.compile(r"[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?$")
+    percentage_regex = re.compile(r"[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?%$")
 
     for key, value in values.items():
         if not isinstance(value, str):
@@ -337,7 +349,7 @@ def _get_typed_values(values):
 
 
 # Used to match and parse floating point numbers of any format
-float_pattern = "[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?"
+float_pattern = r"[-+]?((\d*\.\d+)|(\d+\.?))([Ee][+-]?\d+)?"
 
 # Regular expressions for different log line types
 tree_search_full_log_line_regex = re.compile(
@@ -366,6 +378,7 @@ tree_search_status_line_regex = re.compile(
     )
 )
 
+
 def populate_tree_search_log(tree_search_log_lines):
 
     tree_search_log = []
@@ -374,9 +387,7 @@ def populate_tree_search_log(tree_search_log_lines):
 
     for tree_search_log_line in tree_search_log_lines:
 
-        result = tree_search_full_log_line_regex.match(
-            tree_search_log_line.rstrip()
-        )
+        result = tree_search_full_log_line_regex.match(tree_search_log_line.rstrip())
 
         line, result = _regex_first_match(
             [tree_search_log_line.rstrip()],
@@ -401,7 +412,9 @@ def populate_tree_search_log(tree_search_log_lines):
     return tree_search_log, ignored_lines
 
 
-def get_log_info(values, loglines, verbose=False, populate_tree_search_log=populate_tree_search_log):
+def get_log_info(
+    values, loglines, verbose=False, populate_tree_search_log=populate_tree_search_log
+):
 
     if not isinstance(loglines, list):
         raise TypeError("Wrong log format")
@@ -410,13 +423,13 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
     values.update({"ObjVal": "-", "ObjBound": "-", "MIPGap": "-"})
 
     # Step 1: Find last header line
-    first_line, result = _regex_first_match(loglines, logpattern.headers, reverse=True)
+    first_line, result = _regex_first_match(loglines, LogPattern.headers, reverse=True)
     if not result:
         print("Error: Could not find initial log message in logfile")
         return None
     else:
         # get all header information
-        for _,result in _regex_matches(loglines[:first_line+1], logpattern.headers):
+        for _, result in _regex_matches(loglines[: first_line + 1], LogPattern.headers):
             values.update(result)
 
     # Discard previous lines
@@ -425,13 +438,13 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
     # Step 2: Find valid (final) termination message
     loglines_before_termination = loglines
     pre_termination_line, result = _regex_first_match(
-        loglines, logpattern.pre_termination, reverse=True
+        loglines, LogPattern.pre_termination, reverse=True
     )
     if result is not None:
         loglines_before_termination = loglines_before_termination[pre_termination_line:]
 
     line, result = _regex_first_match(
-        loglines_before_termination, logpattern.termination_message, reverse=True
+        loglines_before_termination, LogPattern.termination_message, reverse=True
     )
 
     if not result:
@@ -442,7 +455,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
 
     # Step 3: Check status on exit
     line, result = _regex_first_match(
-        loglines, logpattern.termination_status, reverse=True
+        loglines, LogPattern.termination_status, reverse=True
     )
 
     if not result:
@@ -457,12 +470,12 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
                 values["Status"] = key
 
     # Presolve information (reverse order is important for lookup!)
-    line, result = _regex_first_match(loglines, logpattern.presolve, reverse=True)
+    line, result = _regex_first_match(loglines, LogPattern.presolve, reverse=True)
     if result:
         values.update(result)
     else:
         line, result = _regex_first_match(
-            loglines, logpattern.presolve_complete, reverse=False
+            loglines, LogPattern.presolve_complete, reverse=False
         )
         if line is not None:
             values["PresolvedNumConstrs"] = 0
@@ -477,14 +490,14 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
 
         # Check patterns on next 5 lines
         coefficient_statistic_lines = loglines[line + 1 : line + 6]
-        for regex in logpattern.coefficients:
+        for regex in LogPattern.coefficients:
             line, result = _regex_first_match(
                 coefficient_statistic_lines, re.compile(regex), reverse=False
             )
             values.update(result)
 
     # Simple pattern
-    for regex in logpattern.various:
+    for regex in LogPattern.various:
         line, result = _regex_first_match(loglines, regex, reverse=True)
         if result:
 
@@ -512,7 +525,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
         )
         for line, result in _regex_matches(
             loglines[cut_count_first_line + 1 : cut_count_last_line + 1],
-            re.compile("  (?P<Name>[\w\- ]+): (?P<Count>\d+)"),
+            re.compile(r"  (?P<Name>[\w\- ]+): (?P<Count>\d+)"),
             reverse=False,
         ):
             if result:
@@ -526,26 +539,26 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
     if norel_first_line and norel_first_line < len(loglines) - 1:
         norel_last_line = _get_last_nonempty_line(loglines, norel_first_line + 1)
         norel_primal_regex = re.compile(
-            "Found heuristic solution:\sobjective\s(?P<Incumbent>[^\s]+)"
+            r"Found heuristic solution:\sobjective\s(?P<Incumbent>[^\s]+)"
         )
         norel_elapsed_time = re.compile(
-            "Elapsed time for NoRel heuristic:\s(?P<Time>\d+)s"
+            r"Elapsed time for NoRel heuristic:\s(?P<Time>\d+)s"
         )
         norel_elapsed_bound = re.compile(
-            "Elapsed time for NoRel heuristic:\s(?P<Time>\d+)s\s\(best\sbound\s(?P<BestBd>[^\s]+)\)"
+            r"Elapsed time for NoRel heuristic:\s(?P<Time>\d+)s\s\(best\sbound\s(?P<BestBd>[^\s]+)\)"
         )
         norel_log = []
         norel_incumbent = {}
-        for norel_log_line in loglines[
-            norel_first_line + 1 : norel_last_line + 1
-        ]:
+        for norel_log_line in loglines[norel_first_line + 1 : norel_last_line + 1]:
             # NoRel shows the solutions and timings/bounds on different lines, so
             # when we see a timing line, we store the most recent incumbent there,
             # instead of recording the primal when the log line is found.
             result = norel_primal_regex.match(norel_log_line)
             if result:
                 norel_incumbent = result.groupdict()
-            result = norel_elapsed_bound.match(norel_log_line) or norel_elapsed_time.match(norel_log_line)
+            result = norel_elapsed_bound.match(
+                norel_log_line
+            ) or norel_elapsed_time.match(norel_log_line)
             if result:
                 tmp = result.groupdict()
                 tmp.update(norel_incumbent)
@@ -555,7 +568,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
 
     # Simplex Log (can be regular LP, root node or crossover)
     simplex_log_start = re.compile(
-        "Iteration(\s+)Objective(\s+)Primal Inf.(\s+)Dual Inf.(\s+)Time"
+        r"Iteration(\s+)Objective(\s+)Primal Inf.(\s+)Dual Inf.(\s+)Time"
     )
     simplex_first_line, result = _regex_first_match(
         loglines, [simplex_log_start], reverse=False
@@ -565,7 +578,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
         # Slice out simplex log lines
         simplex_last_line = _get_last_nonempty_line(loglines, simplex_first_line + 1)
         simplex_log_line_regex = re.compile(
-            "\s*(?P<Iteration>\d+)\s+(?P<Objective>[^\s]+)\s+(?P<PInf>[^\s]+)\s+(?P<DInf>[^\s]+)\s+(?P<Time>\d+)s"
+            r"\s*(?P<Iteration>\d+)\s+(?P<Objective>[^\s]+)\s+(?P<PInf>[^\s]+)\s+(?P<DInf>[^\s]+)\s+(?P<Time>\d+)s"
         )
         simplex_log = []
         for simplex_log_line in loglines[
@@ -580,7 +593,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
 
     # Barrier log (without barrier statistics)
     barrier_log_start = re.compile(
-        "Iter(\s+)Primal(\s+)Dual(\s+)Primal(\s+)Dual(\s+)Compl(\s+)Time"
+        r"Iter(\s+)Primal(\s+)Dual(\s+)Primal(\s+)Dual(\s+)Compl(\s+)Time"
     )
     barrier_first_line, result = _regex_first_match(
         loglines, [barrier_log_start], reverse=False
@@ -590,7 +603,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
         # Slice out barrier log lines
         barrier_last_line = _get_last_nonempty_line(loglines, barrier_first_line + 1)
         barrier_log_line_regex = re.compile(
-            "\s*(?P<Iteration>\d+)(?P<Indicator>\s|\*)\s+(?P<PObj>[^\s]+)\s+(?P<DObj>[^\s]+)\s+(?P<PRes>[^\s]+)\s+(?P<DRes>[^\s]+)\s+(?P<Compl>[^\s]+)\s+(?P<Time>\d+)s"
+            r"\s*(?P<Iteration>\d+)(?P<Indicator>\s|\*)\s+(?P<PObj>[^\s]+)\s+(?P<DObj>[^\s]+)\s+(?P<PRes>[^\s]+)\s+(?P<DRes>[^\s]+)\s+(?P<Compl>[^\s]+)\s+(?P<Time>\d+)s"
         )
         barrier_log = []
         for barrier_log_line in loglines[
@@ -642,7 +655,7 @@ def get_log_info(values, loglines, verbose=False, populate_tree_search_log=popul
 
     # Parameters
     parameters = {}
-    for line, result in _regex_matches(loglines, logpattern.parameters, reverse=True):
+    for line, result in _regex_matches(loglines, LogPattern.parameters, reverse=True):
 
         # Chronological order, will override previous values
         parameters[result["Name"]] = result["Value"]
@@ -740,13 +753,15 @@ def get_dataframe(
                 header = [
                     ind
                     for ind, l in enumerate(loglines)
-                    if re.search(logpattern.headers[0], l)
+                    if re.search(LogPattern.headers[0], l)
                 ]
                 header.append(len(loglines))
             else:
                 header = [0, len(loglines)]
-            for i,h in enumerate(range(len(header) - 1)):
-                log_info = get_log_info(dict(), loglines[header[h] : header[h + 1]], verbose)
+            for i, h in enumerate(range(len(header) - 1)):
+                log_info = get_log_info(
+                    dict(), loglines[header[h] : header[h + 1]], verbose
+                )
                 if log_info is None:
                     print(f"error processing {logfile}")
                     continue
@@ -799,11 +814,9 @@ def get_dataframe(
             final = summary[summary["LogFilePath"] == log]
             nrlines = log_info.get("NoRelLog")
             if nrlines is not None:
-                norel_ = pd.DataFrame(nrlines).apply(
-                    pd.to_numeric, errors="coerce"
-                )
+                norel_ = pd.DataFrame(nrlines).apply(pd.to_numeric, errors="coerce")
                 _copy_keys(final, norel_)
-                norel = norel.append(norel_, ignore_index=True)
+                norel = pd.concat([norel, norel_], ignore_index=True)
 
         # collect root LP log
         rootlp = pd.DataFrame()
@@ -822,7 +835,7 @@ def get_dataframe(
                 )
                 _copy_keys(final, barrier_)
                 barrier_["Type"] = "barrier"
-                rootlp = rootlp.append(barrier_, ignore_index=True)
+                rootlp = pd.concat([rootlp, barrier_], ignore_index=True)
                 crossover = True
             # filter out empty dictionaries and convert all values to numerics
             if simplex_.get("Iteration") is not None:
@@ -831,7 +844,7 @@ def get_dataframe(
                 )
                 _copy_keys(final, simplex_)
                 simplex_["Type"] = "crossover" if crossover else "simplex"
-                rootlp = rootlp.append(simplex_, ignore_index=True)
+                rootlp = pd.concat([rootlp, simplex_], ignore_index=True)
 
         # collect tree search log
         tl = pd.DataFrame()
@@ -843,19 +856,22 @@ def get_dataframe(
                 log = log_info.get("LogFilePath")
                 final = summary[summary["LogFilePath"] == log]
                 # append one last row containing the final data
-                tl_ = tl_.append(
-                    pd.DataFrame(
-                        {
-                            "CurrentNode": final["NodeCount"],
-                            "Incumbent": final["ObjVal"],
-                            "BestBd": final["ObjBound"],
-                            "Gap": final["MIPGap"],
-                            "Time": final["Runtime"],
-                        }
-                    )
+                tl_ = pd.concat(
+                    [
+                        tl_,
+                        pd.DataFrame(
+                            {
+                                "CurrentNode": final["NodeCount"],
+                                "Incumbent": final["ObjVal"],
+                                "BestBd": final["ObjBound"],
+                                "Gap": final["MIPGap"],
+                                "Time": final["Runtime"],
+                            }
+                        ),
+                    ]
                 )
-                non_numeric_cols = set(tl_.columns).intersection({"NewSolution"})
-                numeric_cols = set(tl_.columns).difference(non_numeric_cols)
+                non_numeric_cols = list(set(tl_.columns).intersection({"NewSolution"}))
+                numeric_cols = list(set(tl_.columns).difference(non_numeric_cols))
                 tl_ = pd.concat(
                     [
                         tl_[numeric_cols].apply(pd.to_numeric, errors="coerce"),
@@ -866,7 +882,7 @@ def get_dataframe(
                 _copy_keys(final, tl_)
                 # NB: losing all the heuristic info here!!
 
-                tl = tl.append(tl_, ignore_index=True)
+                tl = pd.concat([tl, tl_], ignore_index=True)
 
         return summary, dict(nodelog=tl, rootlp=rootlp, norel=norel)
     else:
@@ -874,9 +890,12 @@ def get_dataframe(
 
 
 def plot(df: pd.DataFrame, points="all", barmode="group", **kwargs):
-    """plot different chart types to compare performance and see performance variability across random seeds
+    """
+    plot different chart types to compare performance and see performance
+    variability across random seeds
 
-    uses Plotly express; all available keyword arguments can be passed through to px.bar(), px.scatter(), etc.
+    uses Plotly express; all available keyword arguments can be passed through
+    to px.bar(), px.scatter(), etc.
     """
 
     options = list(df.columns) + [None]

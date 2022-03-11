@@ -4,7 +4,6 @@ import re
 from functools import lru_cache
 from functools import partial
 
-
 re_parameter_column = re.compile(r"(.*) \(Parameter\)")
 defaults_dir = pathlib.Path(__file__).parent.joinpath("defaults")
 
